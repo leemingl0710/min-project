@@ -81,3 +81,24 @@ export type Trip = {
 // _id와 createdAt은 저장할 때 서버/DB가 만들어 주므로, 입력하는 쪽에서는 뺀다.
 // (Omit<A, 'x'> = "A에서 x를 뺀 타입")
 export type TripInput = Omit<Trip, '_id' | 'createdAt'>;
+
+// 목록 카드 1개에 필요한 값.
+// 목록에서는 날짜·위치·날씨·제목·사진만 보여주므로, 기록 전체(Trip)가 아니라
+// 이 칸들만 보낸다. (필요 없는 memo, gear 등까지 보내면 느려지기만 한다)
+export type TripListItem = {
+  id: string; // 카드를 누르면 /records/[id] 로 이동할 때 쓰는 번호
+  date: string;
+  place: string;
+  weather: string;
+  title: string;
+  thumbnail: string | null; // 대표 사진 주소 (photos[0]). 사진이 없으면 null
+};
+
+// 목록 API(GET /api/records?page=1)가 돌려주는 값 전체.
+// 카드 10개 + 페이지 버튼을 그리는 데 필요한 숫자들.
+export type TripListResponse = {
+  items: TripListItem[]; // 이번 페이지의 카드들 (최대 10개)
+  page: number; // 지금 페이지 번호 (1부터 시작)
+  totalPages: number; // 전체 페이지 수. 기록이 하나도 없으면 0
+  total: number; // 전체 기록 수
+};

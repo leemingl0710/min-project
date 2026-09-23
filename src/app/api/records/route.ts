@@ -1,8 +1,10 @@
-// 등록 API: POST /api/records
+// 조행기 API: /api/records
 //
-// 등록 화면(records/new/page.tsx)이 보낸 값을 받아서 MongoDB에 저장한다.
+// 한 주소에 두 가지 기능이 있다. 요청 방식(method)으로 구분한다.
+//  - GET  /api/records?page=1 : 목록 가져오기 (10개씩)   → 아래 GET 함수
+//  - POST /api/records        : 새 기록 저장하기          → 아래 POST 함수
 //
-// 데이터가 지나가는 길:
+// [POST] 데이터가 지나가는 길:
 // 1. 화면에서 [저장] → fetch('/api/records', { method: 'POST', body: formData })
 // 2. 여기 POST 함수가 받아서
 // 3. 사진 파일은 public/uploads 폴더에 저장하고, 그 주소만 모은다
@@ -13,7 +15,82 @@ import { NextResponse } from 'next/server';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { getDb } from '@/lib/mongodb';
-import type { TripInput } from '@/types/trip';
+import type { TripInput, TripListItem, TripListResponse } from '@/types/trip';
+
+// 한 페이지에 보여줄 카드 수
+const PAGE_SIZE = 10;
+
+// ─────────────────────────────────────────────
+// 목록 API: GET /api/records?page=2
+// ─────────────────────────────────────────────
+// 날짜 최신순으로 정렬한 뒤, 요청한 페이지의 10개만 돌려준다.
+//
+// 페이지 계산 예 (PAGE_SIZE = 10):
+//   page=1 → 앞에서 0개 건너뛰고 10개  (1~10번째)
+//   page=2 → 앞에서 10개 건너뛰고 10개 (11~20번째)
+//   page=3 → 앞에서 20개 건너뛰고 10개 (21~30번째)
+//   즉, 건너뛸 개수 = (page - 1) × 10
+//
+// 돌려주는 값 예:
+// {
+//   items: [{ id, date, place, weather, title, thumbnail }, ...],
+//   page: 2, totalPages: 3, total: 25
+// }
+export async function GET(request: Request) {
+  // ── 1. 주소에서 page 값 꺼내기 ──
+  // "/api/records?page=2" 에서 ? 뒤의 page=2 부분을 읽는다.
+  const { searchParams } = new URL(request.url);
+  const requested = Number(searchParams.get('page'));
+  // page가 없거나(page=), 글자거나(page=abc), 소수거나(page=2.5), 0 이하면
+  // 1페이지로 본다. Number.isInteger: 정수인지 확인하는 함수
+  const page = Number.isInteger(requested) && requested >= 1 ? requested : 1;
+
+  const collection = (await getDb()).collection('trips');
+
+  // ── 2. 전체 개수 세기 ──
+  // 페이지 버튼을 몇 개 그릴지 알려면 전체 기록 수가 필요하다.
+  const total = await collection.countDocuments();
+  // 올림(ceil): 기록 25개면 25 / 10 = 2.5 → 3페이지
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // ── 3. 이번 페이지 10개 가져오기 ──
+  const docs = await collection
+    .find(
+      {}, // 조건 없음 = 전부
+      {
+        // projection: 목록 카드에 필요한 칸만 가져온다. (1 = 가져오기)
+        // photos 는 첫 장만 필요해서 $slice: 1 로 한 장만 가져온다.
+        projection: { date: 1, place: 1, weather: 1, title: 1, photos: { $slice: 1 } },
+      },
+    )
+    // 정렬: -1 = 큰 값 먼저(내림차순).
+    // date 가 "2026-09-28" 모양의 글자라서 글자 순서 = 날짜 순서가 된다.
+    // (그래서 날짜는 꼭 YYYY-MM-DD 모양으로 입력해야 한다. "9/28" 처럼 쓰면 순서가 틀어진다)
+    // 날짜가 같으면 나중에 저장한 것(createdAt 큰 것)을 먼저.
+    .sort({ date: -1, createdAt: -1 })
+    .skip((page - 1) * PAGE_SIZE) // 앞 페이지들 건너뛰기
+    .limit(PAGE_SIZE) // 10개만
+    .toArray();
+
+  // ── 4. 화면에 보내기 좋은 모양으로 바꾸기 ──
+  // DB 문서 모양 → TripListItem 모양
+  const items: TripListItem[] = docs.map((doc) => ({
+    id: doc._id.toString(), // ObjectId → 글자
+    date: doc.date,
+    place: doc.place,
+    weather: doc.weather,
+    title: doc.title,
+    // 사진이 한 장이라도 있으면 첫 장, 없으면 null
+    thumbnail: doc.photos?.[0] ?? null,
+  }));
+
+  const body: TripListResponse = { items, page, totalPages, total };
+  return NextResponse.json(body);
+}
+
+// ─────────────────────────────────────────────
+// 등록 API: POST /api/records
+// ─────────────────────────────────────────────
 
 // 사진을 저장할 폴더. public 안에 있는 파일은 브라우저에서
 // "/uploads/파일이름" 주소로 바로 열 수 있다.

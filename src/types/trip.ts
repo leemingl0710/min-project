@@ -19,7 +19,6 @@
 //   maxSize: 28,
 //   gear: { rod: "OO 루어대 7.6ft", reel: "2500번", line: "PE 0.8호", bait: "웜" },
 //   memo: "물때가 안 맞아서 오전엔 입질이 없었다...",
-//   photos: ["https://.../photo1.jpg"],
 //   createdAt: 2026-09-28T03:00:00.000Z
 // }
 
@@ -66,12 +65,6 @@ export type Trip = {
   // ── 중단 4번째: 박스형 텍스트 ──
   memo: string; // 위 칸에 안 들어가는 나머지 내용을 자유롭게. 여러 줄 가능
 
-  // ── 중단 5번째: 사진 ──
-  // 사진 파일 자체가 아니라, 사진이 저장된 "주소(URL)"만 저장한다.
-  // 첫 번째 사진(photos[0])을 목록 카드의 작은 사진으로 쓴다.
-  // 사진이 없으면 빈 배열 []
-  photos: string[];
-
   // 저장한 시각. 서버가 저장할 때 자동으로 넣는다.
   // 같은 날짜의 기록이 여러 개일 때 순서를 정하는 데 쓴다.
   createdAt: Date;
@@ -83,7 +76,7 @@ export type Trip = {
 export type TripInput = Omit<Trip, '_id' | 'createdAt'>;
 
 // 목록 카드 1개에 필요한 값.
-// 목록에서는 날짜·위치·날씨·제목·사진만 보여주므로, 기록 전체(Trip)가 아니라
+// 목록에서는 날짜·위치·날씨·제목만 보여주므로, 기록 전체(Trip)가 아니라
 // 이 칸들만 보낸다. (필요 없는 memo, gear 등까지 보내면 느려지기만 한다)
 export type TripListItem = {
   id: string; // 카드를 누르면 /records/[id] 로 이동할 때 쓰는 번호
@@ -91,7 +84,6 @@ export type TripListItem = {
   place: string;
   weather: string;
   title: string;
-  thumbnail: string | null; // 대표 사진 주소 (photos[0]). 사진이 없으면 null
 };
 
 // 목록 API(GET /api/records?page=1)가 돌려주는 값 전체.

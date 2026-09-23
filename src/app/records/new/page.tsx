@@ -3,7 +3,7 @@
 // 화면 구성
 //  - 상단: 제목, 날짜, 위치, 시간, 날씨
 //  - 중단: 어종/마릿수 ([어종 추가]로 줄 늘리기), 최대어 크기
-//          장비(로드, 릴, 라인, 미끼), 자유 텍스트 박스, 사진 첨부
+//          장비(로드, 릴, 라인, 미끼), 자유 텍스트 박스
 //  - 하단: 왼쪽 [뒤로 가기], 오른쪽 [저장]
 //
 // [저장]을 누르면 입력값을 모아 POST /api/records 로 보내고,
@@ -46,9 +46,8 @@ export default function NewRecordPage() {
   // 중단 - 장비. 4칸을 객체 하나로 들고 있다.
   const [gear, setGear] = useState<Gear>({ rod: '', reel: '', line: '', bait: '' });
 
-  // 중단 - 자유 텍스트, 사진
+  // 중단 - 자유 텍스트
   const [memo, setMemo] = useState('');
-  const [photos, setPhotos] = useState<File[]>([]);
 
   // 저장 중에는 버튼을 막고, 실패하면 메시지를 보여준다.
   const [saving, setSaving] = useState(false);
@@ -104,15 +103,14 @@ export default function NewRecordPage() {
       memo,
     };
 
-    // 사진 파일은 JSON에 못 넣어서 FormData에 따로 담는다.
-    //  - "data"   : 글자 값 전부를 JSON 문자열로
-    //  - "photos" : 사진 파일 하나하나
-    const formData = new FormData();
-    formData.append('data', JSON.stringify(data));
-    photos.forEach((file) => formData.append('photos', file));
-
     try {
-      const res = await fetch('/api/records', { method: 'POST', body: formData });
+      // JSON.stringify: 객체를 JSON 글자로 바꾼다. (네트워크로는 글자만 보낼 수 있어서)
+      // Content-Type 헤더: 서버에게 "이건 JSON 이야" 하고 알려 준다.
+      const res = await fetch('/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
 
       if (!res.ok) {
         // 서버가 돌려준 에러 메시지를 보여준다.
@@ -292,31 +290,6 @@ export default function NewRecordPage() {
             onChange={(e) => setMemo(e.target.value)}
             placeholder="물때, 포인트, 느낀 점 등 자유롭게"
           />
-        </section>
-
-        {/* ───────── 중단 4: 사진 첨부 ───────── */}
-        <section className="flex flex-col gap-3">
-          <h2 className="font-semibold">사진</h2>
-          {/* accept="image/*": 사진 파일만 고를 수 있게
-              multiple: 여러 장 한 번에 고르기 */}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => setPhotos(Array.from(e.target.files ?? []))}
-            className="text-sm"
-          />
-          {/* 고른 사진 이름 목록. 첫 번째 사진이 목록 카드의 대표 사진이 된다. */}
-          {photos.length > 0 && (
-            <ul className="text-sm text-gray-600">
-              {photos.map((file, i) => (
-                <li key={i}>
-                  {file.name}
-                  {i === 0 && ' (대표)'}
-                </li>
-              ))}
-            </ul>
-          )}
         </section>
 
         {/* 저장 실패 메시지 */}

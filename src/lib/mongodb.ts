@@ -30,9 +30,21 @@ export async function getDb(): Promise<Db> {
 
   // 아직 접속한 적이 없을 때만 새로 접속한다.
   if (!globalForMongo.mongoClientPromise) {
-    globalForMongo.mongoClientPromise = new MongoClient(uri).connect();
+    globalForMongo.mongoClientPromise = new MongoClient(uri, {
+      // MongoDB가 꺼져 있을 때 기다리는 시간(ms). 기본값은 30초라서
+      // [저장]을 누르고 한참 멈춰 있게 된다. 5초만 기다리고 실패로 처리한다.
+      serverSelectionTimeoutMS: 5000,
+    }).connect();
   }
 
-  const client = await globalForMongo.mongoClientPromise;
-  return client.db(dbName);
+  try {
+    const client = await globalForMongo.mongoClientPromise;
+    return client.db(dbName);
+  } catch (err) {
+    // 접속에 실패하면 보관해 둔 "실패한 연결"을 지운다.
+    // 이걸 안 지우면 MongoDB를 나중에 켜도, 서버를 재시작하기 전까지
+    // 계속 옛날 실패 결과를 돌려준다. 지워 두면 다음 요청 때 다시 접속을 시도한다.
+    globalForMongo.mongoClientPromise = undefined;
+    throw err;
+  }
 }

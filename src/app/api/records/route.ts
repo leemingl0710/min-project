@@ -164,11 +164,14 @@ export async function POST(request: Request) {
 // ─────────────────────────────────────────────
 // 1) 터미널(npm run dev 창)에는 자세한 원래 오류를 찍어서 개발자가 원인을 볼 수 있게 하고
 // 2) 화면에는 사람이 알아볼 수 있는 한국어 문구를 보낸다.
-// 503 = "서버가 지금 일을 할 수 없음" (여기서는 DB가 꺼져 있음) 이라는 뜻의 상태 코드
+// 503 = "서버가 지금 일을 할 수 없음" (여기서는 DB에 닿지 못함) 이라는 뜻의 상태 코드
+//
+// DB 는 MongoDB Atlas(클라우드)라서, 실패하면 보통 인터넷 연결이나
+// .env.local 의 접속 주소(비밀번호)가 문제다. 자세한 이유는 src/lib/mongodb.ts 주석 참고.
 function dbErrorResponse(err: unknown) {
   console.error('[api/records] DB 오류:', err);
   return NextResponse.json(
-    { error: 'DB에 연결할 수 없습니다. MongoDB가 켜져 있는지 확인하세요.' },
+    { error: 'DB에 연결할 수 없습니다. 인터넷 연결과 .env.local 의 MONGODB_URI 를 확인하세요.' },
     { status: 503 },
   );
 }

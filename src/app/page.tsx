@@ -58,7 +58,8 @@ export default function ListPage({ searchParams }: Props) {
         setItems(data.items);
         setTotalPages(data.totalPages);
       } catch {
-        if (!ignore) setError('목록을 불러오지 못했습니다. MongoDB가 켜져 있는지 확인하세요.');
+        // DB(Atlas)에 닿지 못했을 때. 보통 인터넷 연결이나 .env.local 설정 문제다.
+        if (!ignore) setError('목록을 불러오지 못했습니다. 인터넷 연결과 DB 설정을 확인하세요.');
       } finally {
         if (!ignore) setLoading(false);
       }

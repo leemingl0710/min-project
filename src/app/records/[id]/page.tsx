@@ -7,7 +7,6 @@
 //      두번째 줄 - 어종 + 마릿수 (잡은 종류 수만큼 늘어남), 최대어 크기
 //      세번째 줄 - 장비 (로드, 릴, 라인, 미끼)
 //      네번째    - 박스 안에 자유 텍스트(memo)
-//      다섯번째  - 사진 (아직 사진 저장 기능이 없어서 자리만 만들어 둠)
 //  - 하단: [뒤로 가기]
 //
 // 데이터가 지나가는 길:
@@ -173,16 +172,6 @@ export default function DetailPage({ params }: Props) {
                   이게 없으면 여러 줄로 쓴 memo 가 한 줄로 붙어서 나온다 */}
               <div className="min-h-32 whitespace-pre-wrap rounded border border-gray-300 bg-gray-50 p-4">
                 {orDash(trip.memo)}
-              </div>
-            </div>
-
-            {/* ── 다섯번째: 사진 ── */}
-            {/* 아직 등록 화면에 사진 올리기 기능이 없어서(3단계 예정) 자리만 만들어 둔다.
-                나중에 Trip 타입에 사진 주소(photos)를 추가하면 여기서 <img> 로 보여주면 된다 */}
-            <div className="text-sm">
-              <h2 className="mb-2 font-semibold">사진</h2>
-              <div className="flex h-32 items-center justify-center rounded border border-dashed border-gray-300 text-gray-400">
-                등록된 사진이 없습니다
               </div>
             </div>
           </section>

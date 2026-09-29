@@ -75,6 +75,12 @@ export type Trip = {
 // (Omit<A, 'x'> = "A에서 x를 뺀 타입")
 export type TripInput = Omit<Trip, '_id' | 'createdAt'>;
 
+// 상세 API(GET /api/records/[id])가 돌려주는 값.
+// 등록할 때 넣은 값(TripInput) 전부 + 기록 번호(id).
+// _id(ObjectId)는 화면에서 쓰기 불편해서 글자로 바꾼 id 로 보낸다. (목록의 TripListItem 과 같은 방식)
+// (A & B = "A의 칸 전부 + B의 칸 전부를 합친 타입")
+export type TripDetail = TripInput & { id: string };
+
 // 목록 카드 1개에 필요한 값.
 // 목록에서는 날짜·위치·날씨·제목만 보여주므로, 기록 전체(Trip)가 아니라
 // 이 칸들만 보낸다. (필요 없는 memo, gear 등까지 보내면 느려지기만 한다)

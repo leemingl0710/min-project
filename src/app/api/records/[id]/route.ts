@@ -9,27 +9,34 @@
 // 3. trips 컬렉션에서 findOne() 으로 그 id 의 기록 1건을 찾아서
 // 4. 화면에 보내기 좋은 모양(TripDetail)으로 바꿔 돌려준다
 
+//서버에서 작동하는 코드 내에서 클라이언트(브라우저)로 응답을 전달할 때 사용
 import { NextResponse } from 'next/server';
 // ObjectId: MongoDB 의 _id 타입. 글자로 받은 id 를 이 타입으로 바꿔야 DB 에서 찾을 수 있다.
 import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
+// 루트에 있는 TripDetail을 type형태로 받아옴
 import type { TripDetail } from '@/types/trip';
 
 // 두 번째 값({ params })에 Next.js 가 주소의 [id] 자리 글자를 넣어 준다.
 // 첫 번째 값(request)은 여기서는 안 쓰지만, 순서 때문에 자리는 비워 둘 수 없어서 _request 로 받는다.
+//HTTP 요청이 들어왔을 때 실행되는 함수, params(상자) : params(문자열 id를 가진 객체)
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   // ── 1. id 확인 ──
   // ObjectId 는 정해진 모양(24글자 16진수)이 있다.
   // 모양이 틀린 id 로 new ObjectId() 를 하면 오류가 나서, 먼저 확인하고 404(없음)로 돌려보낸다.
-  if (!ObjectId.isValid(params.id)) {
+  // isValid는 params.id가 Mongodb ID 규칙에 맞는지 확인해주는 함수(boolean)
+  if (!ObjectId.isValid(params.id)) { // false일 때
+    //클라이언트에게 보내주기 위해 NextResponse를 사용하고 json형태로 text를 보냄
     return NextResponse.json({ error: '없는 기록입니다.' }, { status: 404 });
   }
 
   // ── 2. DB 에서 1건 찾기 ──
-  let doc;
+  let doc; // 재할당 할 수 있는 변수 선언
   try {
+    //db에 있는 trips에 접근할 때까지 기다렸다 collection에 넣는 코드
     const collection = (await getDb()).collection('trips');
     // findOne: 조건에 맞는 문서 1개만 찾는다. 없으면 null
+    //이전에 받았던 trips에 id값을 이용해 함께있는 데이터를 모두 저장
     doc = await collection.findOne({ _id: new ObjectId(params.id) });
   } catch (err) {
     // DB 접속 실패. 터미널에 원래 오류를 찍고, 화면에는 한국어 문구를 보낸다. (목록 API 와 같은 방식)
@@ -48,6 +55,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // ── 3. 화면에 보내기 좋은 모양으로 바꾸기 ──
   // DB 문서 모양 → TripDetail 모양.
   // ?? '' / ?? [] : 예전에 저장해서 그 칸이 없는 기록이어도 화면이 깨지지 않게 기본값을 넣는다.
+  // ?? == 값이 없을 때를 대비한 안전장치
+  // 읽어온 값을 TripDetail type에 맞추고 body 객체에 담는 코드
   const body: TripDetail = {
     id: doc._id.toString(), // ObjectId → 글자
     date: doc.date,
@@ -60,6 +69,6 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     gear: doc.gear ?? { rod: '', reel: '', line: '', bait: '' },
     memo: doc.memo ?? '',
   };
-
+  //json형태로 클라이언트에게 보여줌
   return NextResponse.json(body);
 }

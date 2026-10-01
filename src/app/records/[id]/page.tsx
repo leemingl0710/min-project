@@ -16,10 +16,14 @@
 // 4. 화면이 다시 그려지면서 내용이 보인다
 
 // useState, useEffect, onClick 을 쓰려면 브라우저에서 돌아가야 한다.
+// 파일 브라우저에서 작동하는 컴포넌트라고 선언하는 지시어
 'use client';
 
+//react에서 useEffect, useState를 가져와 사용
 import { useEffect, useState } from 'react';
+// 공식 라이브러리 모듈에서 페이지 경로를 조종하는 useRouter을 가져옴
 import { useRouter } from 'next/navigation';
+// 파일에 있는 TripDetail의 type형태 데이터만 가져옴
 import type { TripDetail } from '@/types/trip';
 
 // Next.js 는 주소의 [id] 자리 글자를 params 로 넘겨준다.
@@ -30,10 +34,14 @@ type Props = {
 
 // 값이 비어 있으면 "-" 를 보여주기 위한 작은 함수.
 // (입력을 안 한 칸이 그냥 빈칸으로 보이면 화면이 깨진 것처럼 보여서)
+// 프론트에서 호출 받아 값이 들어오면 실행
 function orDash(value: string) {
+  // .trim() 앞뒤 공백을 없애주는 함수
   return value.trim() ? value : '-';
 }
 
+// export default - 이 화면이 메인화면이라는 것을 알려주는 코드, 라우터에 id값이 들어옴
+// 라우터로부터 받은 Props타입 데이터 중에 params데이터만 사용한다.
 export default function DetailPage({ params }: Props) {
   // 페이지 이동(뒤로 가기)에 쓰는 도구
   const router = useRouter();
@@ -55,16 +63,22 @@ export default function DetailPage({ params }: Props) {
       setError('');
 
       try {
+        //주소에 있는 params.id값을 fetch에 들어올 때까지 기다림
         const res = await fetch(`/api/records/${params.id}`);
-        if (!res.ok) {
+        if (!res.ok) { //응답을 참거짓으로 판단
           // 서버가 보낸 에러 문구(예: "없는 기록입니다.")를 꺼내서 catch 로 넘긴다.
+          // 응답이 비어있거나 json형태가 아닐때 빈 객체로 대신 처리
           const body = await res.json().catch(() => ({}));
+          //왼쪽 값이 없을 때 오른쪽 값을 내보낸다.
           throw new Error(body.error ?? '기록을 불러오지 못했습니다.');
         }
+        // 서버 응답을 기다렸다 TripDetail타입 형식으로 data에 넣어라
         const data: TripDetail = await res.json();
         if (ignore) return;
         setTrip(data);
       } catch (err) {
+        //잡힌 에러(err)가 자바스크립트의 진짜 Error 클래스로 만들어진 표준 에러 객체인지 확인하고 맞으면 표준 메시지
+        //아닐 경우 text 메시지
         if (!ignore) setError(err instanceof Error ? err.message : '기록을 불러오지 못했습니다.');
       } finally {
         if (!ignore) setLoading(false);

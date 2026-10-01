@@ -17,3 +17,13 @@ useEffect 뒤에 [page]를 넣어 다른 페이지 클릭 시 새로운 페이�
 TripDetaily type에 형식을 맞춰 body에 저장하고 클라이언트로 넘겨준다.
 
 
+10/01(목)
+파일 : scr/app/api/records/[id]/page.tsx
+
+하는 일 :
+라우터를 이용해 서버로부터 응답 받은 Props타입 데이터에서 params값만 저장한 뒤 params.id에 해당하는
+상세페이지에 대한 UI를 구축하고 구축한 틀에 params.id에 관련된 데이터를 틀에 맞게 데이터를 넣어
+인터페이스에 전시해준다.
+
+모르겠는 것 :
+라우터로 받아온 값이 어떤 과정을 거쳐 DetailPage에 있는 매개변수에 들어가는지

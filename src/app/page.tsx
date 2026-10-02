@@ -67,6 +67,7 @@ export default function ListPage({ searchParams }: Props) {
 
       try {
         // fetch에서 page값을 받을 때까지 기다렸다 res에 넣음
+        // 페이지가 열리면서 params.id 값을 먼저 확보하고 그 값으로 fetch를 실행하게 된다.
         const res = await fetch(`/api/records?page=${page}`);
         // 응답이 실패했을 때 오류를 던져서 catch로 넘어가게함
         if (!res.ok) throw new Error();

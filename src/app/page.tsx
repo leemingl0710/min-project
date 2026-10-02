@@ -1,7 +1,7 @@
 // 목록 화면: /  (예: /?page=2)
 //
 // 화면 구성
-//  - 상단: 제목 "조행기"
+//  - 상단: 제목 "오늘의 낚시 조행기" (가운데 정렬)
 //  - 중단: 조행기 카드 목록 (한 페이지에 10개). 카드를 누르면 상세(/records/[id])로 이동
 //          카드 아래에 페이지 버튼 [이전] 1 2 3 [다음]
 //  - 하단: 왼쪽 [종료], 오른쪽 [조행기 추가]
@@ -121,7 +121,8 @@ export default function ListPage({ searchParams }: Props) {
     // min-h-screen + flex-col: 화면 높이를 꽉 채워서 하단 버튼이 항상 맨 아래에 오게
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col p-4">
       {/* ───────── 상단 ───────── */}
-      <h1 className="mb-6 text-2xl font-bold">조행기</h1>
+      {/* text-center: 가운데 정렬 / text-4xl: 제목 크기 키움 / mt-4 mb-8: 위아래 여백 */}
+      <h1 className="mb-8 mt-4 text-center text-4xl font-bold">오늘의 낚시 조행기</h1>
 
       {/* ───────── 중단: 목록 ───────── */}
       {/* flex-1: 남는 공간을 전부 차지 → 하단 버튼을 아래로 밀어낸다 */}

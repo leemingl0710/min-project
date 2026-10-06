@@ -34,6 +34,8 @@ const PAGE_SIZE = 10;
 //   items: [{ id, date, place, weather, title }, ...],
 //   page: 2, totalPages: 3, total: 25
 // }
+
+// 주소에서 page값
 export async function GET(request: Request) {
   // ── 1. 주소에서 page 값 꺼내기 ──
   // "/api/records?page=2" 에서 ? 뒤의 page=2 부분을 읽는다.

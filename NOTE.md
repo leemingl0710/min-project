@@ -1,5 +1,5 @@
 09/28(월)
-파일 : src/app/records/page.tsx
+파일 : src/app/page.tsx
 
 하는 일 :
 mongoDB에 저장된 조행기 데이터를 가져와서 목록UI로 보여준다.
@@ -18,7 +18,7 @@ TripDetaily type에 형식을 맞춰 body에 저장하고 클라이언트로 넘
 
 
 10/01(목)
-파일 : scr/app/api/records/[id]/page.tsx
+파일 : src/app/records/[id]/page.tsx
 
 하는 일 :
 라우터를 이용해 서버로부터 응답 받은 Props타입 데이터에서 params값만 저장한 뒤 params.id에 해당하는

@@ -37,7 +37,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     //db에 있는 trips에 접근할 때까지 기다렸다 collection에 넣는 코드
     const collection = (await getDb()).collection('trips');
     // findOne: 조건에 맞는 문서 1개만 찾는다. 없으면 null
-    //이전에 받았던 trips에 id값을 이용해 함께있는 데이터를 모두 저장
+    //trips 컬렉션에서 이 id 를 가진 문서를 조회(읽기)해서 doc 에 담는다. 저장하는 게 아니다
     doc = await collection.findOne({ _id: new ObjectId(params.id) });
   } catch (err) {
     // DB 접속 실패. 터미널에 원래 오류를 찍고, 화면에는 한국어 문구를 보낸다. (목록 API 와 같은 방식)

@@ -80,7 +80,9 @@ export default function NewRecordPage() {
 
   // 한 줄의 한 칸(어종 또는 마릿수)이 바뀌었을 때.
   // index번째 줄만 새 값으로 바꾸고, 나머지 줄은 그대로 둔다.
-  // 입력 받은 값을 Keyof CatchRow로 검증해 유효한 키인지 확인하고, map을 이용해 배열 길이만큼 루프
+  // field: keyof CatchRow 는 'species' 나 'count' 만 넣을 수 있다는 TypeScript 표시.
+  // 코드를 작성·빌드할 때 검사하는 것이고, 실행 중에는 아무것도 검사하지 않는다.
+  // map을 이용해 배열 길이만큼 루프
   // i가 인덱스와 일치하는지 확인 스프레드를 이용해 열에 있는 field(키)에 value 값을 넣고 반환
   // 일치하지 않는 줄일 때는 기존 데이터 반환
   function updateCatch(index: number, field: keyof CatchRow, value: string) {
@@ -88,9 +90,9 @@ export default function NewRecordPage() {
   }
 
   // 장비 4칸 중 하나가 바뀌었을 때. 나머지 3칸은 그대로(...gear) 두고 그 칸만 바꾼다.
-  //매개변수가 들어오는 순간 키가 정해지고 검증까지 완료한다.
+  // field: keyof Gear 는 'rod' | 'reel' | 'line' | 'bait' 만 넣을 수 있다는 표시 (빌드할 때 TypeScript가 검사)
   function updateGear(field: keyof Gear, value: string) {
-    //스프레드를 gear 배열에 값이 변한는 줄에 값을 변환하고 바뀐 데이터를 setGear에 저장
+    //gear 객체를 스프레드로 복사하고, 바뀐 칸(field)만 새 값으로 덮어써서 setGear에 저장
     setGear({ ...gear, [field]: value });
   }
 
@@ -106,7 +108,7 @@ export default function NewRecordPage() {
     // 화면에서 들고 있던 글자 값을 저장할 모양으로 바꾼다.
     // 마릿수는 여기서 숫자로 바꾼다 (Catch 타입은 count가 number).
     // Const catchList : Catch[] - catchList는 Catch라는 객체들이 들어있는 배열 형태여야한다.
-    // catches.map을 이용해 c는 catches배열의 순서를 나타내는 인덱스고 c값이 변할 때마다 함수를 실행시킨다.
+    // catches.map을 이용해 줄마다 함수를 한 번씩 실행한다. c는 인덱스가 아니라 각 줄의 객체({ species, count })다.
     // 클라이언트로부터 입력 받은 값을 서버로 보내기 위해 CatchLow에 species키에 c.species를 넣는 코드
     // 카운트에는 입력 받은 숫자를 Number형태로 저장 / false일 때 0
     const catchList: Catch[] = catches.map((c) => ({

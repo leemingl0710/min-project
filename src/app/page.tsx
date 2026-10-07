@@ -66,8 +66,7 @@ export default function ListPage({ searchParams }: Props) {
       setError('');
 
       try {
-        // fetch에서 page값을 받을 때까지 기다렸다 res에 넣음
-        // 페이지가 열리면서 params.id 값을 먼저 확보하고 그 값으로 fetch를 실행하게 된다.
+        // 목록 API 에 page 번호를 붙여 요청하고, 서버 응답이 올 때까지 기다렸다(await) res 에 넣음
         const res = await fetch(`/api/records?page=${page}`);
         // 응답이 실패했을 때 오류를 던져서 catch로 넘어가게함
         if (!res.ok) throw new Error();
@@ -77,14 +76,15 @@ export default function ListPage({ searchParams }: Props) {
         if (ignore) return;
         //서버로부터 받은 data에서 items에 들어있는 값을 넣는 코드(목록박스에 보여줄 데이터를 저장하는 것)
         setItems(data.items);
-        //data에 있는 totalPages(조행기 수)를 가져와 저장(목록박스 개수를 위한 과정)
+        //data에 있는 totalPages(전체 페이지 수)를 가져와 저장(페이지 버튼 개수를 위한 과정)
+        //전체 조행기 수는 totalPages 가 아니라 total 에 들어 있다
         setTotalPages(data.totalPages);
       } catch {
         // DB(Atlas)에 닿지 못했을 때. 보통 인터넷 연결이나 .env.local 설정 문제다.
         //!igonre가 ture일 때 setError를 text값을 넣어서 출력
         if (!ignore) setError('목록을 불러오지 못했습니다. 인터넷 연결과 DB 설정을 확인하세요.');
       } finally {
-        // true일 때 setLoading(false) 로딩이 끝났다고 알려주는 코드
+        // ignore 가 false일 때(이 요청이 아직 최신일 때)만 setLoading(false)로 로딩이 끝났다고 알려주는 코드
         if (!ignore) setLoading(false);
       }
     }
@@ -122,7 +122,7 @@ export default function ListPage({ searchParams }: Props) {
           <p className="text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
           <p className="text-sm text-gray-500">
-            {/* page가 0이면 실행 */}
+            {/* 1페이지면 첫 기록 안내, 그 외 페이지면 "이 페이지에는 기록이 없습니다" */}
             {page === 1 ? '아직 기록이 없습니다. [조행기 추가]로 첫 기록을 남겨 보세요.' : '이 페이지에는 기록이 없습니다.'}
           </p>
         ) : (

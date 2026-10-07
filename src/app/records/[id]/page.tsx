@@ -45,7 +45,7 @@ function orDash(value: string) {
   return value.trim() ? value : '-';
 }
 
-// export default - 이 화면이 메인화면이라는 것을 알려주는 코드, 라우터에 id값이 들어옴
+// export default - Next.js 가 이 주소(/records/[id])에서 그릴 페이지 컴포넌트라는 뜻
 // 라우터로부터 받은 Props타입 데이터 중에 params데이터만 사용한다.
 export default function DetailPage({ params }: Props) {
   // 페이지 이동(뒤로 가기)에 쓰는 도구
@@ -98,6 +98,19 @@ export default function DetailPage({ params }: Props) {
       ignore = true;
     };
   }, [params.id]);
+
+  // ── [뒤로 가기] 버튼 ──
+  // router.back(): 브라우저의 뒤로 가기와 같다.
+  // 그래서 목록 2페이지에서 들어왔으면 2페이지(/?page=2)로 돌아간다.
+  // 다만 링크로 상세 화면에 바로 들어오면(새 탭) 돌아갈 곳이 없어서 앱 밖으로 나가거나 아무 일도 안 일어난다.
+  // history.length 가 1 이면 이 탭에서 연 첫 화면이라는 뜻이라, 그때는 목록(/)으로 보낸다.
+  function handleBack() {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  }
 
   // ── [삭제] 버튼 ──
   async function handleDelete() {
@@ -224,11 +237,9 @@ export default function DetailPage({ params }: Props) {
       {/* 불러오기에 실패해도 돌아갈 수 있게, 버튼은 항상 보여준다 */}
       {/* justify-between: [뒤로 가기]는 왼쪽 끝, [삭제]는 오른쪽 끝 */}
       <div className="mt-8 flex justify-between border-t pt-4">
-        {/* router.back(): 브라우저의 뒤로 가기와 같다.
-            그래서 목록 2페이지에서 들어왔으면 2페이지(/?page=2)로 돌아간다 */}
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={handleBack}
           className="rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
         >
           뒤로 가기

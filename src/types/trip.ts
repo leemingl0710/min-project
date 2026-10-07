@@ -42,7 +42,7 @@ export type Gear = {
 // 조행기 1건
 export type Trip = {
   // MongoDB가 저장할 때 자동으로 만들어 주는 고유 번호.
-  // 상세 주소 /trips/[id] 의 [id] 자리에 들어간다.
+  // 상세 주소 /records/[id] 의 [id] 자리에 들어간다.
   // DB 안에서는 ObjectId라는 특별한 타입이지만, 화면으로 넘길 때는 글자로 바꿔서 쓴다.
   _id: string;
 

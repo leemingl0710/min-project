@@ -182,12 +182,12 @@ export default function NewRecordPage() {
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-sm">
               날짜 *
-              {/* 요구사항대로 달력 대신 글자로 입력 */}
+              {/* type="date": 달력에서 날짜를 고른다. 값은 항상 "2026-09-28"(YYYY-MM-DD) 모양으로 들어온다 */}
               <input
+                type="date"
                 className={inputClass}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                placeholder="2026-09-28"
                 required
               />
             </label>

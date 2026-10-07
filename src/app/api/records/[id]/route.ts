@@ -1,4 +1,5 @@
 // 조행기 상세 API: GET /api/records/[id]
+// 조행기 삭제 API: DELETE /api/records/[id]
 //
 // [id] 폴더 이름은 "주소의 이 자리에 오는 글자를 id 로 받겠다"는 뜻이다.
 //   예) /api/records/66f1a2b3c4d5e6f7a8b9c0d1 → id = "66f1a2b3c4d5e6f7a8b9c0d1"
@@ -71,4 +72,38 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   };
   //json형태로 클라이언트에게 보여줌
   return NextResponse.json(body);
+}
+
+// ── 삭제: DELETE /api/records/[id] ──
+// 데이터가 지나가는 길:
+// 1. 상세 화면의 [삭제] 버튼 → 확인창에서 [확인]을 누르면
+// 2. fetch('/api/records/아이디', { method: 'DELETE' }) 로 여기에 요청
+// 3. trips 컬렉션에서 deleteOne() 으로 그 id 의 기록 1건을 지운다
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  // ── 1. id 확인 ── (GET 과 같은 이유로 먼저 모양을 확인한다)
+  if (!ObjectId.isValid(params.id)) {
+    return NextResponse.json({ error: '없는 기록입니다.' }, { status: 404 });
+  }
+
+  // ── 2. DB 에서 1건 지우기 ──
+  let result;
+  try {
+    const collection = (await getDb()).collection('trips');
+    // deleteOne: 조건에 맞는 문서 1개를 지운다. 몇 개를 지웠는지 deletedCount 로 알려준다
+    result = await collection.deleteOne({ _id: new ObjectId(params.id) });
+  } catch (err) {
+    console.error('[api/records/[id]] DB 오류:', err);
+    return NextResponse.json(
+      { error: 'DB에 연결할 수 없습니다. 인터넷 연결과 .env.local 의 MONGODB_URI 를 확인하세요.' },
+      { status: 503 },
+    );
+  }
+
+  // 지운 게 0개면 이미 없는 기록 (예: 다른 탭에서 먼저 지움)
+  if (result.deletedCount === 0) {
+    return NextResponse.json({ error: '없는 기록입니다.' }, { status: 404 });
+  }
+
+  // 지우기 성공. 돌려줄 내용은 없어서 ok 만 보낸다
+  return NextResponse.json({ ok: true });
 }

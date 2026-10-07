@@ -7,13 +7,18 @@
 //      두번째 줄 - 어종 + 마릿수 (잡은 종류 수만큼 늘어남), 최대어 크기
 //      세번째 줄 - 장비 (로드, 릴, 라인, 미끼)
 //      네번째    - 박스 안에 자유 텍스트(memo)
-//  - 하단: [뒤로 가기]
+//  - 하단: 왼쪽 [뒤로 가기], 오른쪽 [삭제]
 //
 // 데이터가 지나가는 길:
 // 1. 목록에서 카드를 누르면 /records/아이디 로 이동하고
 // 2. 화면이 열리면 useEffect 가 fetch('/api/records/아이디') 로 상세 API(api/records/[id]/route.ts)에 요청
 // 3. 받은 기록 1건을 useState 에 넣으면
 // 4. 화면이 다시 그려지면서 내용이 보인다
+//
+// [삭제] 버튼을 누르면:
+// 1. 확인창(confirm)으로 정말 지울지 한 번 물어보고
+// 2. [확인]을 누르면 fetch('/api/records/아이디', { method: 'DELETE' }) 로 삭제 API 에 요청
+// 3. 지우기에 성공하면 목록 화면(/)으로 이동한다
 
 // useState, useEffect, onClick 을 쓰려면 브라우저에서 돌아가야 한다.
 // 파일 브라우저에서 작동하는 컴포넌트라고 선언하는 지시어
@@ -51,6 +56,7 @@ export default function DetailPage({ params }: Props) {
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [loading, setLoading] = useState(true); // 불러오는 중인지
   const [error, setError] = useState(''); // 불러오기 실패 메시지
+  const [deleting, setDeleting] = useState(false); // 지우는 중인지 (버튼 두 번 누르기 방지)
 
   // ── 기록 1건 불러오기 (useEffect) ──
   // 화면이 처음 열릴 때 + 주소의 id 가 바뀔 때 실행된다. (목록 화면의 [page] 와 같은 원리)
@@ -92,6 +98,28 @@ export default function DetailPage({ params }: Props) {
       ignore = true;
     };
   }, [params.id]);
+
+  // ── [삭제] 버튼 ──
+  async function handleDelete() {
+    // confirm: [확인]을 누르면 true, [취소]를 누르면 false. 취소면 아무것도 안 한다
+    if (!confirm('이 조행기를 삭제할까요? 삭제하면 되돌릴 수 없습니다.')) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/records/${params.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        // 서버가 보낸 에러 문구(예: "없는 기록입니다.")를 꺼내서 catch 로 넘긴다
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? '삭제하지 못했습니다.');
+      }
+      // replace: 지금 주소를 목록으로 바꿔치기한다.
+      // push 를 쓰면 목록에서 [뒤로 가기]를 눌렀을 때 지운 기록 화면으로 돌아오게 된다
+      router.replace('/');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '삭제하지 못했습니다.');
+      setDeleting(false);
+    }
+  }
 
   return (
     // min-h-screen + flex-col: 화면 높이를 꽉 채워서 하단 버튼이 항상 맨 아래에 오게 (목록 화면과 같은 방식)
@@ -194,7 +222,8 @@ export default function DetailPage({ params }: Props) {
 
       {/* ───────── 하단: 버튼 ───────── */}
       {/* 불러오기에 실패해도 돌아갈 수 있게, 버튼은 항상 보여준다 */}
-      <div className="mt-8 flex border-t pt-4">
+      {/* justify-between: [뒤로 가기]는 왼쪽 끝, [삭제]는 오른쪽 끝 */}
+      <div className="mt-8 flex justify-between border-t pt-4">
         {/* router.back(): 브라우저의 뒤로 가기와 같다.
             그래서 목록 2페이지에서 들어왔으면 2페이지(/?page=2)로 돌아간다 */}
         <button
@@ -204,6 +233,17 @@ export default function DetailPage({ params }: Props) {
         >
           뒤로 가기
         </button>
+        {/* 지울 기록이 있을 때만 보여준다. 지우는 중에는 눌리지 않게 disabled */}
+        {trip && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {deleting ? '삭제 중...' : '삭제'}
+          </button>
+        )}
       </div>
     </main>
   );

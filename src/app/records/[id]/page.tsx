@@ -7,7 +7,7 @@
 //      두번째 줄 - 어종 + 마릿수 (잡은 종류 수만큼 늘어남), 최대어 크기
 //      세번째 줄 - 장비 (로드, 릴, 라인, 미끼)
 //      네번째    - 박스 안에 자유 텍스트(memo)
-//  - 하단: 왼쪽 [뒤로 가기], 오른쪽 [삭제]
+//  - 하단: 왼쪽 [뒤로 가기], 오른쪽 [수정] [삭제]
 //
 // 데이터가 지나가는 길:
 // 1. 목록에서 카드를 누르면 /records/아이디 로 이동하고
@@ -19,6 +19,8 @@
 // 1. 확인창(confirm)으로 정말 지울지 한 번 물어보고
 // 2. [확인]을 누르면 fetch('/api/records/아이디', { method: 'DELETE' }) 로 삭제 API 에 요청
 // 3. 지우기에 성공하면 목록 화면(/)으로 이동한다
+//
+// [수정] 버튼을 누르면 수정 화면(/records/아이디/edit)으로 이동한다.
 
 // useState, useEffect, onClick 을 쓰려면 브라우저에서 돌아가야 한다.
 // 파일 브라우저에서 작동하는 컴포넌트라고 선언하는 지시어
@@ -28,6 +30,8 @@
 import { useEffect, useState } from 'react';
 // 공식 라이브러리 모듈에서 페이지 경로를 조종하는 useRouter을 가져옴
 import { useRouter } from 'next/navigation';
+// 수정 화면으로 이동하는 [수정] 버튼에 쓴다 (페이지 이동이라 button 대신 Link)
+import Link from 'next/link';
 // 파일에 있는 TripDetail의 type형태 데이터만 가져옴
 import type { TripDetail } from '@/types/trip';
 
@@ -235,7 +239,7 @@ export default function DetailPage({ params }: Props) {
 
       {/* ───────── 하단: 버튼 ───────── */}
       {/* 불러오기에 실패해도 돌아갈 수 있게, 버튼은 항상 보여준다 */}
-      {/* justify-between: [뒤로 가기]는 왼쪽 끝, [삭제]는 오른쪽 끝 */}
+      {/* justify-between: [뒤로 가기]는 왼쪽 끝, [수정][삭제] 묶음은 오른쪽 끝 */}
       <div className="mt-8 flex justify-between border-t pt-4">
         <button
           type="button"
@@ -244,16 +248,26 @@ export default function DetailPage({ params }: Props) {
         >
           뒤로 가기
         </button>
-        {/* 지울 기록이 있을 때만 보여준다. 지우는 중에는 눌리지 않게 disabled */}
+        {/* 고치거나 지울 기록이 있을 때만 보여준다 */}
         {trip && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {deleting ? '삭제 중...' : '삭제'}
-          </button>
+          // gap-2: 두 버튼 사이 간격. 자주 쓰는 [수정]은 테두리 버튼, 되돌릴 수 없는 [삭제]는 빨간 버튼으로 구분
+          <div className="flex gap-2">
+            <Link
+              href={`/records/${params.id}/edit`}
+              className="rounded border border-blue-500 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
+            >
+              수정
+            </Link>
+            {/* 지우는 중에는 눌리지 않게 disabled */}
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? '삭제 중...' : '삭제'}
+            </button>
+          </div>
         )}
       </div>
     </main>

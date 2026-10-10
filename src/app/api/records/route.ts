@@ -7,12 +7,13 @@
 // [POST] 데이터가 지나가는 길:
 // 1. 화면에서 [저장] → fetch('/api/records', { method: 'POST', body: JSON 글자 })
 // 2. 여기 POST 함수가 받아서
-// 3. 꼭 필요한 칸(제목·날짜·위치)이 있는지, 날짜·시간 모양이 맞는지, 각 칸의 타입이 맞는지 확인하고
+// 3. 꼭 필요한 칸(제목·날짜·위치)이 있는지, 날짜·시간 모양이 맞는지, 각 칸의 타입이 맞는지 확인하고 (src/lib/tripInput.ts)
 // 4. trips 컬렉션에 insertOne() 으로 저장
 // 5. 저장된 _id 를 화면에 돌려준다
 
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
+import { parseTripInput } from '@/lib/tripInput';
 import type { TripListItem, TripListResponse } from '@/types/trip';
 
 // 한 페이지에 보여줄 카드 수
@@ -101,8 +102,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   // ── 1. 보낸 값 꺼내기 ──
   // 화면이 JSON 글자로 보낸 값을 request.json() 으로 객체로 바꾼다.
-  // 받은 값은 믿지 않는다. 화면을 거치지 않고 API 로 직접 보낸 값일 수도 있어서
-  // 칸마다 타입을 직접 확인한다. (그래서 타입을 TripInput 이 아니라 unknown 으로 받는다)
   let input: unknown;
   try {
     input = await request.json();
@@ -111,74 +110,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '입력값 형식이 잘못됐습니다.' }, { status: 400 });
   }
 
-  // 객체가 아니면(null, 숫자, 배열 등) 칸을 꺼낼 수 없으니 바로 돌려보낸다.
-  if (!isObject(input)) {
-    return NextResponse.json({ error: '입력값 형식이 잘못됐습니다.' }, { status: 400 });
+  // ── 2. 검사하고 DB에 넣을 문서 만들기 ──
+  // 검사 규칙은 수정 API 와 같이 쓰려고 src/lib/tripInput.ts 에 모아 두었다.
+  const parsed = parseTripInput(input);
+  if ('error' in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-
-  // 제목·날짜·위치는 목록 카드에 나오는 값이라 비어 있으면 저장하지 않는다.
-  // (화면에서도 막지만, 서버에서도 한 번 더 확인한다)
-  // text(): 글자가 아니면(숫자, 객체 등) 빈 글자로 바꾼다 → 아래에서 "비어 있음"으로 걸린다
-  const title = text(input.title).trim();
-  const date = text(input.date).trim();
-  const place = text(input.place).trim();
-  if (!title || !date || !place) {
-    return NextResponse.json(
-      { error: '제목, 날짜, 위치는 꼭 입력해야 합니다.' },
-      { status: 400 },
-    );
-  }
-
-  // 목록은 date 글자 순서로 정렬하므로 꼭 YYYY-MM-DD 모양이어야 한다.
-  // ("9/28", "2026-9-8" 처럼 들어오면 정렬 순서가 틀어진다)
-  // 정규식: 숫자 4개 - 숫자 2개 - 숫자 2개, 앞뒤에 다른 글자 없음
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json(
-      { error: '날짜는 2026-09-28 처럼 YYYY-MM-DD 형식이어야 합니다.' },
-      { status: 400 },
-    );
-  }
-
-  // 시간은 선택 칸이라 비어 있어도 되지만, 적었다면 "05:30 ~ 11:00" 모양이어야 한다.
-  // 정규식: (00~23):(00~59) ~ (00~23):(00~59)
-  const time = text(input.time).trim();
-  if (time && !/^([01]\d|2[0-3]):[0-5]\d ~ ([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
-    return NextResponse.json(
-      { error: '시간은 05:30 ~ 11:00 처럼 HH:MM ~ HH:MM 형식이어야 합니다.' },
-      { status: 400 },
-    );
-  }
-
-  // catches 는 배열이어야 .filter() 를 쓸 수 있다. 없으면 빈 배열(꽝)로 본다.
-  if (input.catches !== undefined && !Array.isArray(input.catches)) {
-    return NextResponse.json({ error: '조과 형식이 잘못됐습니다.' }, { status: 400 });
-  }
-  const gear = isObject(input.gear) ? input.gear : {};
-
-  // ── 2. DB에 넣을 문서 만들기 ──
-  // 값을 하나씩 다시 적는 이유: 화면에서 이상한 칸이 더 와도
-  // 여기 적은 칸만 저장되게 하려고.
-  // 선택 칸도 text() 로 글자만 받는다. 숫자나 객체가 저장되면
-  // 상세 화면의 orDash() 에서 .trim() 이 없어서 화면이 죽는다.
   const doc = {
-    date,
-    place,
-    title,
-    time,
-    weather: text(input.weather),
-    // 어종 이름이 빈 줄은 빼고, 마릿수는 0 이상의 숫자로 바꿔 둔다.
-    catches: ((input.catches ?? []) as unknown[])
-      .filter(isObject)
-      .map((c) => ({ species: text(c.species).trim(), count: nonNegative(c.count) }))
-      .filter((c) => c.species),
-    maxSize: nonNegative(input.maxSize),
-    gear: {
-      rod: text(gear.rod),
-      reel: text(gear.reel),
-      line: text(gear.line),
-      bait: text(gear.bait),
-    },
-    memo: text(input.memo),
+    ...parsed.value,
     createdAt: new Date(), // 저장한 시각은 서버가 넣는다
   };
 
@@ -213,24 +152,4 @@ function dbErrorResponse(err: unknown) {
     { error: 'DB에 연결할 수 없습니다. 인터넷 연결과 .env.local 의 MONGODB_URI 를 확인하세요.' },
     { status: 503 },
   );
-}
-
-// ─────────────────────────────────────────────
-// 입력값 검사 도우미 (POST 가 쓴다)
-// ─────────────────────────────────────────────
-
-// 칸을 꺼낼 수 있는 객체인지. (null 과 배열은 typeof 가 'object' 라서 따로 뺀다)
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-// 글자면 그대로, 글자가 아니면(없음, 숫자, 객체 등) 빈 글자로.
-function text(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
-// 숫자로 바꿔서 0 이상이면 그대로, 숫자가 아니거나 음수면 0.
-function nonNegative(value: unknown): number {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? n : 0;
 }

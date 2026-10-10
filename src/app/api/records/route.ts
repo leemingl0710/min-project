@@ -7,7 +7,7 @@
 // [POST] 데이터가 지나가는 길:
 // 1. 화면에서 [저장] → fetch('/api/records', { method: 'POST', body: JSON 글자 })
 // 2. 여기 POST 함수가 받아서
-// 3. 꼭 필요한 칸(제목·날짜·위치)이 있는지, 날짜가 YYYY-MM-DD 모양인지, 각 칸의 타입이 맞는지 확인하고
+// 3. 꼭 필요한 칸(제목·날짜·위치)이 있는지, 날짜·시간 모양이 맞는지, 각 칸의 타입이 맞는지 확인하고
 // 4. trips 컬렉션에 insertOne() 으로 저장
 // 5. 저장된 _id 를 화면에 돌려준다
 
@@ -139,6 +139,16 @@ export async function POST(request: Request) {
     );
   }
 
+  // 시간은 선택 칸이라 비어 있어도 되지만, 적었다면 "05:30 ~ 11:00" 모양이어야 한다.
+  // 정규식: (00~23):(00~59) ~ (00~23):(00~59)
+  const time = text(input.time).trim();
+  if (time && !/^([01]\d|2[0-3]):[0-5]\d ~ ([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    return NextResponse.json(
+      { error: '시간은 05:30 ~ 11:00 처럼 HH:MM ~ HH:MM 형식이어야 합니다.' },
+      { status: 400 },
+    );
+  }
+
   // catches 는 배열이어야 .filter() 를 쓸 수 있다. 없으면 빈 배열(꽝)로 본다.
   if (input.catches !== undefined && !Array.isArray(input.catches)) {
     return NextResponse.json({ error: '조과 형식이 잘못됐습니다.' }, { status: 400 });
@@ -154,7 +164,7 @@ export async function POST(request: Request) {
     date,
     place,
     title,
-    time: text(input.time),
+    time,
     weather: text(input.weather),
     // 어종 이름이 빈 줄은 빼고, 마릿수는 0 이상의 숫자로 바꿔 둔다.
     catches: ((input.catches ?? []) as unknown[])

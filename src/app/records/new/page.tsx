@@ -41,7 +41,9 @@ export default function NewRecordPage() {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [place, setPlace] = useState('');
-  const [time, setTime] = useState('');
+  // 시간은 시작·끝을 따로 고르고, 저장할 때 "05:30 ~ 11:00" 한 줄로 합친다
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [weather, setWeather] = useState('');
 
   // 중단 - 조과. 처음엔 빈 줄 하나로 시작한다.
@@ -115,6 +117,10 @@ export default function NewRecordPage() {
       species: c.species,
       count: Number(c.count) || 0,
     }));
+
+    // 시작·끝을 둘 다 골랐을 때만 "05:30 ~ 11:00" 모양으로 합친다. 안 골랐으면 빈 글자
+    // (하나만 고르면 아래 입력칸의 required 때문에 여기까지 오지 않는다)
+    const time = startTime && endTime ? `${startTime} ~ ${endTime}` : '';
 
     const data = {
       title,
@@ -206,15 +212,31 @@ export default function NewRecordPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-sm">
+            {/* type="time": 시각을 고르는 칸. 값은 항상 "05:30"(HH:MM, 24시간) 모양으로 들어온다.
+                시간은 선택 입력이지만, 한쪽만 고르면 "~ 11:00" 처럼 반쪽이 되므로
+                한쪽을 고르면 다른 쪽도 required 가 된다 */}
+            <div className="flex flex-col gap-1 text-sm">
               시간
-              <input
-                className={inputClass}
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                placeholder="05:30 ~ 11:00"
-              />
-            </label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="time"
+                  aria-label="시작 시간"
+                  className={inputClass}
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required={endTime !== ''}
+                />
+                <span>~</span>
+                <input
+                  type="time"
+                  aria-label="끝 시간"
+                  className={inputClass}
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required={startTime !== ''}
+                />
+              </div>
+            </div>
             <label className="flex flex-col gap-1 text-sm">
               날씨
               <input

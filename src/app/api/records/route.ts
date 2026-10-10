@@ -7,13 +7,14 @@
 // [POST] 데이터가 지나가는 길:
 // 1. 화면에서 [저장] → fetch('/api/records', { method: 'POST', body: JSON 글자 })
 // 2. 여기 POST 함수가 받아서
-// 3. 꼭 필요한 칸(제목·날짜·위치)이 있는지 확인하고
+// 3. 꼭 필요한 칸(제목·날짜·위치)이 있는지, 날짜·시간 모양이 맞는지, 각 칸의 타입이 맞는지 확인하고 (src/lib/tripInput.ts)
 // 4. trips 컬렉션에 insertOne() 으로 저장
 // 5. 저장된 _id 를 화면에 돌려준다
 
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
-import type { TripInput, TripListItem, TripListResponse } from '@/types/trip';
+import { parseTripInput } from '@/lib/tripInput';
+import type { TripListItem, TripListResponse } from '@/types/trip';
 
 // 한 페이지에 보여줄 카드 수
 const PAGE_SIZE = 10;
@@ -34,6 +35,8 @@ const PAGE_SIZE = 10;
 //   items: [{ id, date, place, weather, title }, ...],
 //   page: 2, totalPages: 3, total: 25
 // }
+
+// page 번호를 받아 그 페이지의 기록 10개와 전체 페이지 수를 돌려준다
 export async function GET(request: Request) {
   // ── 1. 주소에서 page 값 꺼내기 ──
   // "/api/records?page=2" 에서 ? 뒤의 page=2 부분을 읽는다.
@@ -99,9 +102,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   // ── 1. 보낸 값 꺼내기 ──
   // 화면이 JSON 글자로 보낸 값을 request.json() 으로 객체로 바꾼다.
-  // 받은 값은 믿지 않고, TripInput 모양이라고 "가정"만 한다.
-  // 꼭 필요한 칸은 아래에서 직접 확인한다.
-  let input: TripInput;
+  let input: unknown;
   try {
     input = await request.json();
   } catch {
@@ -109,37 +110,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '입력값 형식이 잘못됐습니다.' }, { status: 400 });
   }
 
-  // 제목·날짜·위치는 목록 카드에 나오는 값이라 비어 있으면 저장하지 않는다.
-  // (화면에서도 막지만, 서버에서도 한 번 더 확인한다)
-  // input?. : 아무것도 안 보냈거나(null) 해도 오류 대신 undefined 가 되게
-  if (!input?.title?.trim() || !input.date?.trim() || !input.place?.trim()) {
-    return NextResponse.json(
-      { error: '제목, 날짜, 위치는 꼭 입력해야 합니다.' },
-      { status: 400 },
-    );
+  // ── 2. 검사하고 DB에 넣을 문서 만들기 ──
+  // 검사 규칙은 수정 API 와 같이 쓰려고 src/lib/tripInput.ts 에 모아 두었다.
+  const parsed = parseTripInput(input);
+  if ('error' in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-
-  // ── 2. DB에 넣을 문서 만들기 ──
-  // 값을 하나씩 다시 적는 이유: 화면에서 이상한 칸이 더 와도
-  // 여기 적은 칸만 저장되게 하려고.
   const doc = {
-    date: input.date.trim(),
-    place: input.place.trim(),
-    title: input.title.trim(),
-    time: input.time ?? '',
-    weather: input.weather ?? '',
-    // 어종 이름이 빈 줄은 빼고, 마릿수는 숫자로 바꿔 둔다.
-    catches: (input.catches ?? [])
-      .filter((c) => c.species?.trim())
-      .map((c) => ({ species: c.species.trim(), count: Number(c.count) || 0 })),
-    maxSize: Number(input.maxSize) || 0,
-    gear: {
-      rod: input.gear?.rod ?? '',
-      reel: input.gear?.reel ?? '',
-      line: input.gear?.line ?? '',
-      bait: input.gear?.bait ?? '',
-    },
-    memo: input.memo ?? '',
+    ...parsed.value,
     createdAt: new Date(), // 저장한 시각은 서버가 넣는다
   };
 

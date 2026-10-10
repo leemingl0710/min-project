@@ -1,4 +1,6 @@
 // 조행기 상세 API: GET /api/records/[id]
+// 조행기 수정 API: PUT /api/records/[id]
+// 조행기 삭제 API: DELETE /api/records/[id]
 //
 // [id] 폴더 이름은 "주소의 이 자리에 오는 글자를 id 로 받겠다"는 뜻이다.
 //   예) /api/records/66f1a2b3c4d5e6f7a8b9c0d1 → id = "66f1a2b3c4d5e6f7a8b9c0d1"
@@ -14,6 +16,7 @@ import { NextResponse } from 'next/server';
 // ObjectId: MongoDB 의 _id 타입. 글자로 받은 id 를 이 타입으로 바꿔야 DB 에서 찾을 수 있다.
 import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
+import { parseTripInput } from '@/lib/tripInput';
 // 루트에 있는 TripDetail을 type형태로 받아옴
 import type { TripDetail } from '@/types/trip';
 
@@ -36,7 +39,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     //db에 있는 trips에 접근할 때까지 기다렸다 collection에 넣는 코드
     const collection = (await getDb()).collection('trips');
     // findOne: 조건에 맞는 문서 1개만 찾는다. 없으면 null
-    //이전에 받았던 trips에 id값을 이용해 함께있는 데이터를 모두 저장
+    //trips 컬렉션에서 이 id 를 가진 문서를 조회(읽기)해서 doc 에 담는다. 저장하는 게 아니다
     doc = await collection.findOne({ _id: new ObjectId(params.id) });
   } catch (err) {
     // DB 접속 실패. 터미널에 원래 오류를 찍고, 화면에는 한국어 문구를 보낸다. (목록 API 와 같은 방식)
@@ -71,4 +74,90 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   };
   //json형태로 클라이언트에게 보여줌
   return NextResponse.json(body);
+}
+
+// ── 수정: PUT /api/records/[id] ──
+// 데이터가 지나가는 길:
+// 1. 수정 화면(records/[id]/edit/page.tsx)에서 [저장]을 누르면
+// 2. fetch('/api/records/아이디', { method: 'PUT', body: JSON 글자 }) 로 여기에 요청
+// 3. 등록 API 와 같은 규칙(parseTripInput)으로 검사하고
+// 4. trips 컬렉션에서 updateOne() 으로 그 id 의 기록을 새 값으로 바꾼다
+// PUT = "이 자리의 데이터를 보낸 값으로 통째로 바꿔 줘" 라는 뜻의 요청 방식
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  // ── 1. id 확인 ── (GET 과 같은 이유로 먼저 모양을 확인한다)
+  if (!ObjectId.isValid(params.id)) {
+    return NextResponse.json({ error: '없는 기록입니다.' }, { status: 404 });
+  }
+
+  // ── 2. 보낸 값 꺼내서 검사하기 ── (등록 API 와 같은 규칙)
+  let input: unknown;
+  try {
+    input = await request.json();
+  } catch {
+    return NextResponse.json({ error: '입력값 형식이 잘못됐습니다.' }, { status: 400 });
+  }
+  const parsed = parseTripInput(input);
+  if ('error' in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  // ── 3. DB 에서 1건 바꾸기 ──
+  let result;
+  try {
+    const collection = (await getDb()).collection('trips');
+    // updateOne(찾을 조건, 바꿀 내용)
+    // $set: 적은 칸만 새 값으로 바꾸고, 안 적은 칸(createdAt)은 그대로 둔다.
+    // createdAt 을 그대로 두는 이유: 같은 날짜끼리의 목록 순서가 수정할 때마다 바뀌지 않게
+    result = await collection.updateOne(
+      { _id: new ObjectId(params.id) },
+      { $set: { ...parsed.value, updatedAt: new Date() } },
+    );
+  } catch (err) {
+    console.error('[api/records/[id]] DB 오류:', err);
+    return NextResponse.json(
+      { error: 'DB에 연결할 수 없습니다. 인터넷 연결과 .env.local 의 MONGODB_URI 를 확인하세요.' },
+      { status: 503 },
+    );
+  }
+
+  // 조건에 맞는 문서가 0개면 이미 없는 기록 (예: 다른 탭에서 먼저 지움)
+  if (result.matchedCount === 0) {
+    return NextResponse.json({ error: '없는 기록입니다.' }, { status: 404 });
+  }
+
+  return NextResponse.json({ id: params.id });
+}
+
+// ── 삭제: DELETE /api/records/[id] ──
+// 데이터가 지나가는 길:
+// 1. 상세 화면의 [삭제] 버튼 → 확인창에서 [확인]을 누르면
+// 2. fetch('/api/records/아이디', { method: 'DELETE' }) 로 여기에 요청
+// 3. trips 컬렉션에서 deleteOne() 으로 그 id 의 기록 1건을 지운다
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  // ── 1. id 확인 ── (GET 과 같은 이유로 먼저 모양을 확인한다)
+  if (!ObjectId.isValid(params.id)) {
+    return NextResponse.json({ error: '없는 기록입니다.' }, { status: 404 });
+  }
+
+  // ── 2. DB 에서 1건 지우기 ──
+  let result;
+  try {
+    const collection = (await getDb()).collection('trips');
+    // deleteOne: 조건에 맞는 문서 1개를 지운다. 몇 개를 지웠는지 deletedCount 로 알려준다
+    result = await collection.deleteOne({ _id: new ObjectId(params.id) });
+  } catch (err) {
+    console.error('[api/records/[id]] DB 오류:', err);
+    return NextResponse.json(
+      { error: 'DB에 연결할 수 없습니다. 인터넷 연결과 .env.local 의 MONGODB_URI 를 확인하세요.' },
+      { status: 503 },
+    );
+  }
+
+  // 지운 게 0개면 이미 없는 기록 (예: 다른 탭에서 먼저 지움)
+  if (result.deletedCount === 0) {
+    return NextResponse.json({ error: '없는 기록입니다.' }, { status: 404 });
+  }
+
+  // 지우기 성공. 돌려줄 내용은 없어서 ok 만 보낸다
+  return NextResponse.json({ ok: true });
 }

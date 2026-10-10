@@ -4,7 +4,7 @@
 //  - 상단: 제목 "오늘의 낚시 조행기" (가운데 정렬)
 //  - 중단: 조행기 카드 목록 (한 페이지에 10개). 카드를 누르면 상세(/records/[id])로 이동
 //          카드 아래에 페이지 버튼 [이전] 1 2 3 [다음]
-//  - 하단: 왼쪽 [종료], 오른쪽 [조행기 추가]
+//  - 하단: 오른쪽 [조행기 추가]
 //
 // 데이터가 지나가는 길:
 // 1. 화면이 열리면(또는 페이지 번호가 바뀌면) useEffect 가 실행되고
@@ -66,8 +66,7 @@ export default function ListPage({ searchParams }: Props) {
       setError('');
 
       try {
-        // fetch에서 page값을 받을 때까지 기다렸다 res에 넣음
-        // 페이지가 열리면서 params.id 값을 먼저 확보하고 그 값으로 fetch를 실행하게 된다.
+        // 목록 API 에 page 번호를 붙여 요청하고, 서버 응답이 올 때까지 기다렸다(await) res 에 넣음
         const res = await fetch(`/api/records?page=${page}`);
         // 응답이 실패했을 때 오류를 던져서 catch로 넘어가게함
         if (!res.ok) throw new Error();
@@ -77,14 +76,15 @@ export default function ListPage({ searchParams }: Props) {
         if (ignore) return;
         //서버로부터 받은 data에서 items에 들어있는 값을 넣는 코드(목록박스에 보여줄 데이터를 저장하는 것)
         setItems(data.items);
-        //data에 있는 totalPages(조행기 수)를 가져와 저장(목록박스 개수를 위한 과정)
+        //data에 있는 totalPages(전체 페이지 수)를 가져와 저장(페이지 버튼 개수를 위한 과정)
+        //전체 조행기 수는 totalPages 가 아니라 total 에 들어 있다
         setTotalPages(data.totalPages);
       } catch {
         // DB(Atlas)에 닿지 못했을 때. 보통 인터넷 연결이나 .env.local 설정 문제다.
         //!igonre가 ture일 때 setError를 text값을 넣어서 출력
         if (!ignore) setError('목록을 불러오지 못했습니다. 인터넷 연결과 DB 설정을 확인하세요.');
       } finally {
-        // true일 때 setLoading(false) 로딩이 끝났다고 알려주는 코드
+        // ignore 가 false일 때(이 요청이 아직 최신일 때)만 setLoading(false)로 로딩이 끝났다고 알려주는 코드
         if (!ignore) setLoading(false);
       }
     }
@@ -99,18 +99,6 @@ export default function ListPage({ searchParams }: Props) {
     };
 //다른 페이지로 넘어가고 싶어서 다른 버튼을 눌렀을 때, 새로운 페이지를 실행
   }, [page]);
-
-  // ── [종료] 버튼 ──
-  // 웹페이지는 보안 때문에 사용자가 직접 연 탭을 스스로 닫을 수 없다.
-  // window.close() 를 시도해 보고, 브라우저가 막으면 안내 문구를 띄운다.
-  // 종료 버튼 이벤트
-  function handleExit() {
-    if (!confirm('조행기를 종료할까요?')) return;
-    window.close();
-    // 탭이 닫혔다면 아래 줄은 실행되지 않는다. 여기까지 왔다면 브라우저가 막은 것.
-    // text를 보여준다
-    alert('브라우저가 창 닫기를 막았습니다. 탭을 직접 닫아 주세요.');
-  }
 
   // 페이지 버튼에 쓸 번호 목록. totalPages 가 3 이면 [1, 2, 3]
   // Array.from({ length: 3 }, (_, i) => i + 1) → [1, 2, 3]
@@ -134,7 +122,7 @@ export default function ListPage({ searchParams }: Props) {
           <p className="text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
           <p className="text-sm text-gray-500">
-            {/* page가 0이면 실행 */}
+            {/* 1페이지면 첫 기록 안내, 그 외 페이지면 "이 페이지에는 기록이 없습니다" */}
             {page === 1 ? '아직 기록이 없습니다. [조행기 추가]로 첫 기록을 남겨 보세요.' : '이 페이지에는 기록이 없습니다.'}
           </p>
         ) : (
@@ -204,15 +192,8 @@ export default function ListPage({ searchParams }: Props) {
       </section>
 
       {/* ───────── 하단: 버튼 ───────── */}
-      {/* justify-between: 첫 번째는 왼쪽 끝, 두 번째는 오른쪽 끝 */}
-      <div className="mt-8 flex justify-between border-t pt-4">
-        <button
-          type="button"
-          onClick={handleExit}
-          className="rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
-        >
-          종료
-        </button>
+      {/* justify-end: 버튼을 오른쪽 끝에 둔다 */}
+      <div className="mt-8 flex justify-end border-t pt-4">
         {/* 등록 화면으로 이동. 페이지 이동이라 button 대신 Link 를 쓴다 */}
         <Link
           href="/records/new"

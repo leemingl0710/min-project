@@ -12,7 +12,8 @@
 | --- | --- | --- |
 | 목록 | `/` (예: `/?page=2`) | 기록을 날짜 최신순으로 10개씩 보여준다 |
 | 등록 | `/records/new` | 새 기록을 입력해서 저장한다 |
-| 상세 | `/records/[id]` | 기록 1건을 자세히 보여주고, 삭제할 수 있다 |
+| 상세 | `/records/[id]` | 기록 1건을 자세히 보여주고, 수정·삭제할 수 있다 |
+| 수정 | `/records/[id]/edit` | 저장한 기록을 고친다 |
 
 ## API
 
@@ -21,6 +22,7 @@
 | GET | `/api/records?page=1` | 목록 (10개씩) |
 | POST | `/api/records` | 새 기록 저장 |
 | GET | `/api/records/[id]` | 기록 1건 |
+| PUT | `/api/records/[id]` | 기록 1건 수정 |
 | DELETE | `/api/records/[id]` | 기록 1건 삭제 |
 
 ## 실행 방법
@@ -61,8 +63,11 @@ src/
     page.tsx                  목록 화면
     records/new/page.tsx      등록 화면
     records/[id]/page.tsx     상세 화면
+    records/[id]/edit/page.tsx 수정 화면
     api/records/route.ts      목록(GET), 등록(POST) API
-    api/records/[id]/route.ts 상세(GET), 삭제(DELETE) API
+    api/records/[id]/route.ts 상세(GET), 수정(PUT), 삭제(DELETE) API
+  components/RecordForm.tsx   등록·수정 화면이 같이 쓰는 입력 폼
   lib/mongodb.ts              MongoDB 접속
+  lib/tripInput.ts            등록·수정 API가 같이 쓰는 입력값 검사
   types/trip.ts               조행기 데이터 모양(타입)
 ```

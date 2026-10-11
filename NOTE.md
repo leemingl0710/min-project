@@ -1,5 +1,5 @@
 09/28(월)
-파일 : src/app/records/page.tsx
+파일 : src/app/page.tsx
 
 하는 일 :
 mongoDB에 저장된 조행기 데이터를 가져와서 목록UI로 보여준다.
@@ -18,7 +18,7 @@ TripDetaily type에 형식을 맞춰 body에 저장하고 클라이언트로 넘
 
 
 10/01(목)
-파일 : scr/app/api/records/[id]/page.tsx
+파일 : src/app/records/[id]/page.tsx
 
 하는 일 :
 라우터를 이용해 서버로부터 응답 받은 Props타입 데이터에서 params값만 저장한 뒤 params.id에 해당하는
@@ -43,3 +43,14 @@ POST, GET, PUT, DELETE 등 존재
 headers: { 'Content-Type': 'application/json' }는
 서버가 들어오는 본문 데이터를 어떻게 파싱할지 미리 준비해야하기 때문에 사용함
 네트워크로 전송할 때, js 변수 상자 그 자체로 보낼 수 없고 오직 글자만 전송 가능하기 때문에 사용
+
+10/07(수)
+파일 src/app/records/[id]/page.tsx
+
+추가한 부분 :
+삭제하고 싶은 조행기를 삭제하는 기능
+삭제 버튼을 누르게 되면 confirm을 이용해 Dialog box를 만들어내고
+확인을 누를 시 조행기를 삭제하고 취소를 누를 시. 조행기를 삭제하지 않는다.
+
+기타 :
+confirm은 브라우저 내장함수

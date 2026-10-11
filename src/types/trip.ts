@@ -42,7 +42,7 @@ export type Gear = {
 // 조행기 1건
 export type Trip = {
   // MongoDB가 저장할 때 자동으로 만들어 주는 고유 번호.
-  // 상세 주소 /trips/[id] 의 [id] 자리에 들어간다.
+  // 상세 주소 /records/[id] 의 [id] 자리에 들어간다.
   // DB 안에서는 ObjectId라는 특별한 타입이지만, 화면으로 넘길 때는 글자로 바꿔서 쓴다.
   _id: string;
 
@@ -52,7 +52,7 @@ export type Trip = {
   title: string; // 제목
 
   // ── 중단 1번째 줄 ──
-  time: string; // 시간. 시작~끝을 글자 그대로 (예: "05:30 ~ 11:00")
+  time: string; // 시간. "시작 ~ 끝" 모양의 글자 (예: "05:30 ~ 11:00"). 안 적었으면 ""
   weather: string; // 날씨. 글자로 저장 (예: "맑음"). 목록 카드에도 나온다
 
   // ── 중단 2번째 줄 ──
